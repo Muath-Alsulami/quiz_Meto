@@ -1,0 +1,328 @@
+
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>الاختبار النهائي التفاعلي</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      direction: rtl;
+      text-align: center;
+      padding: 2rem;
+      background: #f7f7f7;
+      transition: background 0.3s, color 0.3s;
+    }
+    body.dark-mode {
+      background: #121212;
+      color: #e0e0e0;
+    }
+    #quiz-container {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: background 0.3s, color 0.3s;
+    }
+    body.dark-mode #quiz-container {
+      background: #1e1e1e;
+    }
+    .question {
+      font-size: 1.2rem;
+      margin: 1rem 0;
+    }
+    .options {
+      list-style: none;
+      padding: 0;
+    }
+    .options li {
+      margin: 0.5rem 0;
+    }
+    .options button {
+      width: 100%;
+      padding: .75rem;
+      font-size: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: #fff;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .options button:hover {
+      background: #f0f0f0;
+    }
+    body.dark-mode .options button {
+      background: #333;
+      border-color: #555;
+    }
+    body.dark-mode .options button:hover {
+      background: #444;
+    }
+    #next-btn {
+      margin-top: 1rem;
+      padding: .75rem 1.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    #next-btn:disabled {
+      background: #aaa;
+      cursor: default;
+    }
+    #result {
+      font-size: 1.5rem;
+      margin-top: 1rem;
+    }
+    #timer {
+      font-size: 1.2rem;
+      color: #d9534f;
+      margin-top: 10px;
+    }
+    #progress-bar {
+      height: 10px;
+      background: #ddd;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    #progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #28a745;
+      transition: width 0.3s;
+    }
+    #start-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    input[type="text"] {
+      padding: 0.5rem;
+      font-size: 1rem;
+      width: 60%;
+      text-align: center;
+    }
+    .fixed-buttons {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .fixed-buttons button {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .fixed-buttons button:hover {
+      background: #ddd;
+    }
+    body.dark-mode .fixed-buttons button {
+      background: #333;
+      color: #fff;
+    }
+    body.dark-mode .fixed-buttons button:hover {
+      background: #444;
+    }
+  </style>
+</head>
+<body>
+  <div class="fixed-buttons">
+    <button onclick="toggleZoom()">تكبير/تصغير</button>
+    <button onclick="toggleDarkMode()">الوضع الليلي</button>
+  </div>
+  <div id="quiz-container">
+    <div id="start-screen">
+      <h1>🎓 الاختبار النهائي لمادة الإدارة الاستراتيجية والتنظيمية</h1>
+      <p>أدخل اسمك لبدء الاختبار:</p>
+      <input type="text" id="username" placeholder="اكتب اسمك هنا" />
+      <button onclick="startQuiz()">ابدأ الاختبار</button>
+      <div id="last-score"></div>
+    </div>
+
+    <div id="quiz-content" style="display:none;">
+      <div id="progress"></div>
+      <div id="progress-bar"><div id="progress-fill"></div></div>
+      <div class="question" id="question-text"></div>
+      <ul class="options" id="options-list"></ul>
+      <div id="timer"></div>
+      <button id="next-btn" disabled>التالي</button>
+      <div id="result"></div>
+      <canvas id="result-chart" style="max-width: 100%; margin-top: 20px;"></canvas>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const questions = [
+      { text: "المقصد الاستراتيجي يشير إلى الهدف الذي تسعى المنظمة إلى تحقيقه بناءً على كفاءاتها الأساسية.", options: ["صح","خطأ"], answer: "صح" },
+      { text: "أي من الطرق التالية لقياس فاعلية المنظمة تعتمد على مقارنة الأداء الفعلي مع المؤشرات المحددة مسبقًا؟", options: ["طريقة الأهداف","طريقة الموارد","طريقة العمليات الداخلية","طريقة الأداء المتوازن"], answer: "طريقة الأهداف" },
+      { text: "تغطي طريقة بطاقة الأداء المتوازن أربعة جوانب فقط مالية وعمليات داخلية وتعلم ونمو ورضا العملاء.", options: ["صح","خطأ"], answer: "صح" },
+      { text: "وفقًا لنموذج بورتر للتنافسية، أي استراتيجية تركز على الابتكار والمخاطرة والبحث عن فرص جديدة؟", options: ["استراتيجية الدفاع","استراتيجية المستكشف","استراتيجية التكلفة المنخفضة","استراتيجية التركيز"], answer: "استراتيجية المستكشف" },
+      { text: "في نموذج مايلز وسنوم للمواقف التنافسية، أي استراتيجية تحاول موازنة الرقابة والابتكار؟", options: ["المستكشف","المدافع","المحلل","المتفاعل"], answer: "المحلل" },
+      { text: "التصميم القائم على زيادة التحكم والكفاءة التنظيمية يرتبط بالتوجه النمطي المدافع.", options: ["صح","خطأ"], answer: "صح" },
+      { text: "أي من هياكل الشركة العالمية يجمع بين منتجات موحدة عالميًا واستجابة محلية؟", options: ["الهيكل الوظيفي","الهيكل الجغرافي","الهيكل المصفوفي العالمي","الهيكل الدولي"], answer: "الهيكل المصفوفي العالمي" },
+      { text: "الحوافز تُعد من الدوافع الرئيسية لتوسع المنظمات دوليًا.", options: ["صح","خطأ"], answer: "صح" },
+      { text: "ما هو أحد أنواع المحفزات المستخدمة لتحقيق التكامل بين وحدات الشركة العالمية؟", options: ["التخصص الوظيفي","فرق العمل العالمية","السلطة المركزية","التفويض المطلق"], answer: "فرق العمل العالمية" },
+      { text: "في استراتيجية تقليل التكاليف وفقًا لبورتر، ماذا تركز المنظمة؟", options: ["خفض التكاليف وتحقيق وفورات الحجم","الابتكار وتطوير منتجات جديدة","استهداف شريحة سوقية ضيقة","التركيز على الجودة العالية"], answer: "خفض التكاليف وتحقيق وفورات الحجم" },
+      { text: "إحدى نماذج التغيير التنظيمي يعتبر التغيير حدثًا مؤقتًا ومرحليًا ويستخدم نموذج إذابة التجميد–التغيير–إعادة التجميد.", options: ["صح","خطأ"], answer: "صح" },
+      { text: "أي من الخطوات التالية ليس من خطوات إدارة التغيير وفق نموذج كورت لوين؟", options: ["إذابة التجميد","بدء التنفيذ","إعادة تجميد الوضع الجديد","زيادة القوى المثبطة"], answer: "زيادة القوى المثبطة" },
+      { text: "نموذج التغيير المستمر مناسب للمنظمات الصغيرة الناشئة في بيئات عالية التغير.", options: ["صح","خطأ"], answer: "صح" },
+      { text: "أي من الأسباب التالية يعد سببًا داخليًا لدفع التغيير التنظيمي؟", options: ["المنافسة","التعديلات الاستراتيجية","القوانين الحكومية","الدورات الاقتصادية"], answer: "التعديلات الاستراتيجية" },
+      { text: "وكيل التغيير الداخلي يكون أكثر حذرًا وأقل جرأة في اتخاذ القرارات مقارنة بالمستشارين الخارجيين.", options: ["صح","خطأ"], answer: "صح" },
+      { text: "أي من نماذج صنع القرار التنظيمي يفترض أن المديرين يسعون إلى بديل مُرضٍ وليس الأمثل؟", options: ["النموذج العقلاني","نموذج العقلانية المحدودة","نموذج الحدس","نموذج سلة المهملات"], answer: "نموذج العقلانية المحدودة" },
+      { text: "تحيز التكلفة الغارقة يدفع صانعي القرار إلى التركيز على التكاليف الماضية بدلاً من العواقب المستقبلية.", options: ["صح","خطأ"], answer: "صح" },
+      { text: "في إطار الطوارئ لاستخدام نماذج اتخاذ القرار، أي نموذج يستخدم عند وجود اتفاق حول المشكلة ومعرفة بالحلول؟", options: ["النموذج العقلاني","نموذج كارنيجي","النموذج التدريجي","نموذج سلة المهملات"], answer: "النموذج العقلاني" },
+      { text: "القرارات المبرمجة تتخذ عادة بواسطة الإجراءات واللوائح المتكررة.", options: ["صح","خطأ"], answer: "صح" },
+      { text: "أي من الأنواع التالية للقرارات التنظيمية يتطلب مستوى إداري أعلى ويتعامل مع مشاكل غير مبرمجة؟", options: ["القرارات المبرمجة","القرارات غير المبرمجة","القرارات الروتينية","القرارات التشغيلية"], answer: "القرارات غير المبرمجة" }
+    ];
+
+    let current = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 30;
+    let selectedOption = null;
+    let incorrectQuestions = [];
+
+    const progress = document.getElementById('progress');
+    const questionText = document.getElementById('question-text');
+    const optionsList = document.getElementById('options-list');
+    const nextBtn = document.getElementById('next-btn');
+    const result = document.getElementById('result');
+    const quizContainer = document.getElementById('quiz-container');
+    const timerDisplay = document.getElementById('timer');
+    const progressBar = document.getElementById('progress-fill');
+    const resultChart = document.getElementById('result-chart').getContext('2d');
+
+    function startQuiz() {
+      const username = document.getElementById('username').value;
+      if (username.trim() === '') {
+        alert('يرجى إدخال اسمك لبدء الاختبار.');
+        return;
+      }
+      localStorage.setItem('username', username);
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('quiz-content').style.display = 'block';
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      clearInterval(timer);
+      timeLeft = 30;
+      timerDisplay.textContent = `الوقت المتبقي: ${timeLeft} ثانية`;
+      timer = setInterval(updateTimer, 1000);
+
+      const q = questions[current];
+      progress.innerHTML = `<strong>السؤال ${current + 1} من ${questions.length}</strong>`;
+      questionText.textContent = q.text;
+      optionsList.innerHTML = '';
+      nextBtn.disabled = true;
+      selectedOption = null;
+
+      q.options.forEach(opt => {
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.textContent = opt;
+        btn.onclick = () => selectOption(opt, btn);
+        li.appendChild(btn);
+        optionsList.appendChild(li);
+      });
+
+      progressBar.style.width = `${(current / questions.length) * 100}%`;
+    }
+
+    function selectOption(choice, btn) {
+      if (selectedOption) {
+        selectedOption.style.background = '';
+      }
+      selectedOption = btn;
+      selectedOption.style.background = '#d4edda';
+      nextBtn.disabled = false;
+    }
+
+    function updateTimer() {
+      timeLeft--;
+      timerDisplay.textContent = `الوقت المتبقي: ${timeLeft} ثانية`;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        nextQuestion();
+      }
+    }
+
+    nextBtn.onclick = () => {
+      nextQuestion();
+    };
+
+    function nextQuestion() {
+      if (selectedOption && selectedOption.textContent === questions[current].answer) {
+        score++;
+      } else {
+        incorrectQuestions.push(questions[current]);
+      }
+      current++;
+      if (current < questions.length) {
+        loadQuestion();
+      } else {
+        endQuiz();
+      }
+    }
+
+    function endQuiz() {
+      clearInterval(timer);
+      quizContainer.innerHTML = `
+        <h1>🎓 انتهى الاختبار!</h1>
+        <p id="result">حصلت على ${score} من ${questions.length} نقطة.</p>
+        ${score === questions.length ? '<p>🎉 الدرجة كاملة! 🎉</p>' : ''}
+        <button onclick="location.reload()">🔁 إعادة الاختبار</button>
+        <h2>الأسئلة التي أجبت عليها بشكل خاطئ:</h2>
+        <ul>
+          ${incorrectQuestions.map(q => `<li>${q.text}</li>`).join('')}
+        </ul>
+      `;
+      displayChart();
+    }
+
+    function displayChart() {
+      new Chart(resultChart, {
+        type: 'doughnut',
+        data: {
+          labels: ['إجابات صحيحة', 'إجابات خاطئة'],
+          datasets: [{
+            data: [score, questions.length - score],
+            backgroundColor: ['#28a745', '#dc3545']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+    }
+
+    function toggleZoom() {
+      document.body.style.zoom = document.body.style.zoom === '1.5' ? '1' : '1.5';
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const lastUsername = localStorage.getItem('username');
+      if (lastUsername) {
+        document.getElementById('last-score').textContent = `مرحبًا ${lastUsername}!`;
+      }
+    });
+  </script>
+</body>
+</html>
